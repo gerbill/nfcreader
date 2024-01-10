@@ -1,24 +1,23 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:orientation="vertical"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/tagDataTextView"
+
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#FF0000"
+        android:textSize="18sp" />
 
     <Button
         android:id="@+id/readNfcButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Read NFC Tag"
-        android:layout_centerInParent="true" />
+        android:text="Read NFC"
+        android:layout_marginTop="16dp"
+        />
 
-    <TextView
-        android:id="@+id/nfcDataTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/readNfcButton"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="20dp"
-        android:text="NFC Data will appear here"
-        android:padding="16dp" />
-</RelativeLayout>
+</LinearLayout>

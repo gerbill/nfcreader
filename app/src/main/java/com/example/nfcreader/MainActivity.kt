@@ -1,86 +1,114 @@
 package com.example.nfcreader
-
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.IntentFilter
 import android.nfc.NfcAdapter
 import android.nfc.Tag
+import android.nfc.tech.Ndef
+import android.nfc.tech.NdefFormatable
+import android.nfc.tech.NfcA
+import android.nfc.tech.NfcV
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import android.util.Log
 
 class MainActivity : AppCompatActivity() {
 
-    private var nfcAdapter: NfcAdapter? = null
-    private lateinit var nfcDataTextView: TextView
+    private lateinit var tagDataTextView: TextView
     private lateinit var readNfcButton: Button
-    private lateinit var pendingIntent: PendingIntent
+    private lateinit var nfcAdapter: NfcAdapter
+    private lateinit var nfcPendingIntent: PendingIntent
     private lateinit var intentFiltersArray: Array<IntentFilter>
+    private lateinit var techListsArray: Array<Array<String>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        nfcDataTextView = findViewById(R.id.nfcDataTextView)
+        tagDataTextView = findViewById(R.id.tagDataTextView)
         readNfcButton = findViewById(R.id.readNfcButton)
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
 
-        if (nfcAdapter == null) {
-            nfcDataTextView.text = "NFC is not available on this device."
-            readNfcButton.isEnabled = false
-            return
+        // Create a PendingIntent to handle the NFC intent
+        val intent = Intent(this, javaClass).apply {
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+        nfcPendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+
+        // Create an IntentFilter array to filter for NFC events
+        val ndefIntentFilter = IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED)
+        try {
+            ndefIntentFilter.addDataType("*/*")
+            intentFiltersArray = arrayOf(ndefIntentFilter)
+        } catch (e: IntentFilter.MalformedMimeTypeException) {
+            throw RuntimeException("Failed to create NFC intent filter", e)
         }
 
-        val intent = Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        pendingIntent = PendingIntent.getActivity(
-            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        // Create a tech list array for the NFC techs you want to handle
+        techListsArray = arrayOf(
+            arrayOf(NfcA::class.java.name),
+            arrayOf(Ndef::class.java.name),
+            arrayOf(NdefFormatable::class.java.name)
         )
 
-        val ndef = IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED).apply {
-            try {
-                addDataType("*/*")
-            } catch (e: IntentFilter.MalformedMimeTypeException) {
-                throw RuntimeException("Failed to add MIME type", e)
-            }
-        }
-        intentFiltersArray = arrayOf(ndef)
-
+        // Set an OnClickListener for the read NFC button
         readNfcButton.setOnClickListener {
-            enableNfcReading()
+            startNfcReading()
         }
-    }
-
-    private fun enableNfcReading() {
-        nfcAdapter?.enableForegroundDispatch(this, pendingIntent, intentFiltersArray, null)
-        nfcDataTextView.text = "Tap an NFC tag to read it."
-        Log.d("NFCReader", "Foreground NFC reading enabled")
-    }
-
-    override fun onPause() {
-        super.onPause()
-        nfcAdapter?.disableForegroundDispatch(this)
+        tagDataTextView.text = "Yo!"
     }
 
     override fun onResume() {
         super.onResume()
-        if (nfcAdapter != null) {
-            enableNfcReading()
-        }
+        nfcAdapter.enableForegroundDispatch(this, nfcPendingIntent, intentFiltersArray, techListsArray)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        nfcAdapter.disableForegroundDispatch(this)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Log.d("NFCReader", "New NFC intent received")
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
-            intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)?.also { tag ->
-                val nfcContent = "Tag info: ${tag.id.toHexString()}"
-                nfcDataTextView.text = nfcContent
-                Log.d("NFCReader", "NFC Tag Read: $nfcContent")
-            }
-        }
+        Log.d("NFC onNewIntent", "onNewIntent() called with intent: ${intent.action}")
+        handleNfcIntent(intent)
+//        if (NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
+//            handleNfcIntent(intent)
+//        }
     }
 
-    private fun ByteArray.toHexString() = joinToString(separator = " ") { byte -> "%02x".format(byte) }
+    private fun startNfcReading() {
+        // TODO: Add any additional logic you need before starting the NFC reading
+
+        // Start the NFC reading by enabling foreground dispatch
+        Log.d("NFC startNfcReading", "startNfcReading() called")
+        nfcAdapter.enableForegroundDispatch(this, nfcPendingIntent, intentFiltersArray, techListsArray)
+    }
+
+    private fun handleNfcIntent(intent: Intent) {
+        val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+        Log.d("NFC handleNfcIntent", "handleNfcIntent() called with tag: $tag")
+        val ndef = Ndef.get(tag)
+        val nfcv = NfcV.get(tag)
+        ndef?.connect()
+        nfcv.connect()
+        val message = nfcv
+        Log.d("NFC handleNfcIntent", "handleNfcIntent() called with ndef: $ndef")
+//        Log.d("NFC handleNfcIntent", "handleNfcIntent() called with ndefMessage: $ndefMessage")
+//        val payload = ndefMessage?.records?.get(0)?.payload ?: ByteArray(0)
+//        val data = String(payload)
+//        Log.d("NFC handleNfcIntent", "handleNfcIntent() called with data: $data")
+//        tagDataTextView.text = data
+//        ndef?.close()
+//        tag?.let {
+//            val ndef = Ndef.get(tag)
+//            ndef?.connect()
+//            val ndefMessage = ndef?.ndefMessage
+//            val payload = ndefMessage?.records?.get(0)?.payload ?: ByteArray(0)
+//            val data = String(payload)
+//            tagDataTextView.text = data
+//            ndef?.close() }
+    }
 }
