@@ -80,8 +80,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startNfcReading() {
-        // TODO: Add any additional logic you need before starting the NFC reading
-
         // Start the NFC reading by enabling foreground dispatch
         Log.d("NFC startNfcReading", "startNfcReading() called")
         nfcAdapter.enableForegroundDispatch(this, nfcPendingIntent, intentFiltersArray, techListsArray)
@@ -90,25 +88,11 @@ class MainActivity : AppCompatActivity() {
     private fun handleNfcIntent(intent: Intent) {
         val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
         Log.d("NFC handleNfcIntent", "handleNfcIntent() called with tag: $tag")
-        val ndef = Ndef.get(tag)
         val nfcv = NfcV.get(tag)
-        ndef?.connect()
         nfcv.connect()
+        val messageLen = nfcv.maxTransceiveLength
         val message = nfcv
-        Log.d("NFC handleNfcIntent", "handleNfcIntent() called with ndef: $ndef")
-//        Log.d("NFC handleNfcIntent", "handleNfcIntent() called with ndefMessage: $ndefMessage")
-//        val payload = ndefMessage?.records?.get(0)?.payload ?: ByteArray(0)
-//        val data = String(payload)
-//        Log.d("NFC handleNfcIntent", "handleNfcIntent() called with data: $data")
-//        tagDataTextView.text = data
-//        ndef?.close()
-//        tag?.let {
-//            val ndef = Ndef.get(tag)
-//            ndef?.connect()
-//            val ndefMessage = ndef?.ndefMessage
-//            val payload = ndefMessage?.records?.get(0)?.payload ?: ByteArray(0)
-//            val data = String(payload)
-//            tagDataTextView.text = data
-//            ndef?.close() }
+        nfcv.close()
+        Log.d("NFC handleNfcIntent", "handleNfcIntent() called with ndef: $nfcv $messageLen")
     }
 }
